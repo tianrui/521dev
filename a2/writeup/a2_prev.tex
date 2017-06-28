@@ -1,0 +1,119 @@
+\documentclass[12pt]{article}
+% \usepackage[paperwidth=216mm, paperheight=279mm, margin=1.87cm]{geometry}
+\usepackage{amsmath}    % need for subequations
+\usepackage{graphicx}   % need for figures
+\usepackage{verbatim}   % useful for program listings
+\usepackage{color}      % use if color is used in text
+\usepackage{subfigure}  % use for side-by-side figures
+\usepackage{hyperref}   % use for hypertext links, including those to external documents and URLs
+\usepackage{fullpage}
+
+\usepackage[utf8]{inputenc}
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\usepackage{listings}
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+language=Python,
+basicstyle=\ttm,
+otherkeywords={self},             % Add keywords here
+keywordstyle=\ttb\color{deepblue},
+emph={MyClass,__init__},          % Custom highlighting
+emphstyle=\ttb\color{deepred},    % Custom highlighting style
+stringstyle=\color{deepgreen},
+frame=tb,                         % Any extra options here
+showstringspaces=false            % 
+}}
+
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+\pythonstyle
+\lstset{#1}
+}
+{}
+
+% Python for external files
+\newcommand\pythonexternal[2][]{{
+\pythonstyle
+\lstinputlisting[#1]{#2}}}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+\lstset{
+    frame=single,
+    breaklines=true,
+    postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{red}\hookrightarrow\space}}
+}
+
+\title{\Large{ECE521: Inference Algorithms and Machine Learning \\ University of Toronto \\Assignment 2: Logistic Regression and Neural Network\\Due date: February 15, at Noon}}
+% \author{Parsa Mirdehghan \\ University of Toronto}
+% \template{Alireza Makhzani \\ University of Toronto}
+\date{}
+
+
+\begin{document}
+
+
+\maketitle
+
+\section{Introduction}
+
+The purpose of this assignment is to investigate the performance of logistic regression and neural network in classifying different letters in a new dataset. In this assignment, you will gain some experience in training a neural network, and also you are going to use an effective way to avoid overfitting in neural networks. All the implementations need to be done using Python, NumPy and TensorFlow.
+
+
+
+\section{notMNIST Dataset}
+
+The dataset that we will use in this assignment is a permuted version of notMNIST\footnote{http://yaroslavvb.blogspot.ca/2011/09/notmnist-dataset.html}, which contains 28-by-28 images of 10 letters (A to J) taken from different fonts. This dataset has 18720 instances which you can divide them into different sets for training and test (in some questions you need to divide them into training, test and validation sets). The provided file is in \textbf{.npz} format which is for Python. You can load this file in python as follows.
+
+\begin{python}
+with np.load("notMNIST.npz") as data:
+    images, labels = data["images"], data["labels"]
+\end{python}
+
+
+
+\section{Logistic Regression}
+
+In the first part of the assignment, we will use logistic regression algorithm for classifying the letters. Training targets are integer numbers between 0 to 9. So, we should implement a logistic regression with 10 output units.
+
+\subsubsection*{Task 1 : Classification Error using LR}
+Implement the logistic regression algorithm for classifying the images. Use softmax for the output layer and cross entropy as your cost function. For this task you can use the first 16000 images as your training set and the remaining part as your test set. Train your model without any regularization using stochastic gradient descent with momentum. Adding momentum is a useful technique to speed up the training and preventing the cost function from oscillation. Momentum is a hyperparameter for your system and you should come up with a good value for it. Plot the number of training error and test error vs. the number of epochs. When do you think is the best time to stop training?
+
+
+\section{Neural Network}
+
+In this part, we use neural network to classify the letters in the dataset. For this section, you should divide your dataset into 3 different sets (first 15000 images for training set, the next 1000 instances for validation set and the remaining part for test set). In all of the tasks, use RELU as your activation functions, cross entropy for your cost function, and also you should apply a softmax layer on your output layer. To have an estimation about the running time, training the following neural networks, will not take more than an hour on an Intel core i7 CPU @1.73 GHz with 4GB RAM.
+
+\subsubsection*{Task 2: Neural Network Training}
+Implement a simple neural network with one hidden layer and 1000 hidden units. Train you neural network with aforementioned characteristics. For training your network, you are supposed to find a reasonable value for your learning rate. As we always do for picking the best value for a hyperparameter (which learning rate is one of them), you should train your neural network for different values of learning rate and choose the one that gives you the best validation error. Trying 5 different values will be enough. You may also find it useful to decay the weights as training procedure goes on. Plot the number of training, validation, and test error vs. the number of epochs. Make sure to use early stopping for your training to avoid overfitting. After stopping the procedure of training, what are the training, test, and validation errors?
+
+\subsubsection*{Task 3: Number of hidden units}
+Instead of using 1000 hidden units, train different neural networks with $[100, 500, 1000]$ hidden units. Find the best validation error for each one. Choose the model which gives you the best result, and then use it for classifying the test set. What is the number of test errors? In one sentence, summarize your observation about the effect of number of hidden units in the final results.
+
+\subsubsection*{Task 4: Number of layers}
+For this task fix the number of hidden units to 1000. This time, train a neural network with two hidden layers with the same number of hidden units. So each layer has 500 units. Plot the number of training and validation errors vs. the number of epochs. What is the final validation error when the training is done? Using the test set, compare this architecture with the one-layer case.
+
+\subsubsection*{Task 5: Dropout}
+Dropout is a powerful technique to decrease the overfitting and enhance the overall performance of the neural network. Using the same architecture in Task 2, introduce dropout on the hidden layer of neural network (with rate 0.5) and train you neural network. As you know, dropout should only be used in the training procedure, not in the evaluation. Plot the number of training and validation error vs the number of epochs. compare the results with the case that we do not have any dropout. In one sentence, summarize your observation about the effect of dropout. 
+
+\subsubsection*{Task 6: Exhaustive search for the best set of hyperparameters}
+As you have seen in the previous tasks, hyperparameters play a very important role in neural networks. So finding the best set of hyperparameters is a critical step toward getting a good result. The most reliable way is exhaustive search, which is trying many different sets of values and picking the model with the lowest validation error. However, this procedure is computationally expensive and it needs to be done with GPU\footnote{http://www.nvidia.ca/object/what-is-gpu-computing.html}. GPU divides a large task into many smaller ones and assigns them to different cores for parallel processing. Unfortunately all the students may not have access to GPU, but fortunately we can still use the idea of parallel processing. The whole class can be a GPU and each student will be one of its cores!
+To achieve this goal, randomly sample the \textbf{log of learning rate} uniformly between -4 and -2, the \textbf{number of layers} from 1 to 3, and the \textbf{number of hidden units per layer} between 100 and 500. Also, randomly choose your model to use \textbf{dropout} or not. Using these hyperparameters, Train your neural network and report its validation and test error. Repeat this task for 5 models, and report their results.
+We will compare all the results and let you know the best model and the best test error rate that can be achieved.
+
+
+
+\end{document}

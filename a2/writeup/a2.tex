@@ -1,0 +1,126 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage{assignments}
+\usepackage{minted}
+
+\begin{document}
+
+\title{\vspace{-4ex}ECE521: Inference Algorithms and Machine Learning \\
+University of Toronto\\ \  \\
+Assignment 2: \\Logistic Regression and Neural Networks}
+\date{\vspace{-8ex}TA: Use Piazza for Q\&A \\ Due date: Feb 27 11:59 pm, 2017 \\ Electronic submission to: \href{mailto:ece521ta@gmail.com}{ece521ta@gmail.com} }
+
+\maketitle
+
+\section*{General Note:}
+\begin{itemize}
+\item The purpose of this assignment is to investigate the classification performance of logistic regression and neural networks. In this assignment, you will gain some experience in training a neural network and will use an effective way to avoid overfitting. All the implementations need to be done using Python and TensorFlow. You are encouraged to look up TensorFlow APIs for useful utility functions,  at: \url{https://www.tensorflow.org/api_docs/python/}.
+\item Full points are given for complete solutions, including justifying the choices or assumptions you made to solve each question. Both a written report and your complete source code (as an appendix and separate files) should be included in the final submission.
+\item Homework assignments are to be solved by yourself or in groups of two. You are encouraged to discuss the assignment with other students, but you must solve it within your own group. Make sure to be closely involved in all aspects of the assignment. If you work in a group, please indicate the contribution percentage from each group member at the beginning of your report.
+\end{itemize}
+
+
+\section*{notMNIST Dataset}
+
+The dataset that we will use in this assignment is a permuted version of notMNIST\footnote{\url{http://yaroslavvb.blogspot.ca/2011/09/notmnist-dataset.html}}, which contains 28-by-28 images of 10 letters (A to J) in  different fonts. This dataset has 18720 instances, which can be divided into different sets for training, validation and testing. The provided file is in \textbf{.npz} format which is for Python. You can load this file as follows.
+
+\includegraphics[scale=0.6]{multiclass.png}
+
+\begin{minted}{python}
+with np.load("notMNIST.npz") as data:
+    Data, Target = data ["images"], data["labels"]
+    np.random.seed(521)
+    randIndx = np.arange(len(Data))
+    np.random.shuffle(randIndx)
+    Data = Data[randIndx]/255.
+    Target = Target[randIndx]
+    trainData, trainTarget = Data[:15000], Target[:15000]
+    validData, validTarget = Data[15000:16000], Target[15000:16000]
+    testData, testTarget = Data[16000:], Target[16000:]
+\end{minted}
+
+\subsection*{Two-class notMNIST dataset}
+We use the following script to generate a smaller dataset that only contains the images from two letter classes: ``C''(the positive class) and ``J''(the negative class). This smaller subset of the data contains 3500 training images, 100 validation images and 145 test images.
+
+%\begin{figure*}
+%\centering
+%\vspace{-0.1in}
+\includegraphics[scale=0.6]{binary.png}
+%\vspace{-0.1in}
+%\end{figure*}
+
+\begin{minted}{python}
+with np.load("notMNIST.npz") as data :
+    Data, Target = data ["images"], data["labels"]
+    posClass = 2
+    negClass = 9
+    dataIndx = (Target==posClass) + (Target==negClass)
+    Data = Data[dataIndx]/255.
+    Target = Target[dataIndx].reshape(-1, 1)
+    Target[Target==posClass] = 1
+    Target[Target==negClass] = 0
+    np.random.seed(521)
+    randIndx = np.arange(len(Data))
+    np.random.shuffle(randIndx)
+    Data, Target = Data[randIndx], Target[randIndx]
+    trainData, trainTarget = Data[:3500], Target[:3500]
+    validData, validTarget = Data[3500:3600], Target[3500:3600]
+    testData, testTarget = Data[3600:], Target[3600:]
+\end{minted}
+
+\subsection*{Facial recognition}
+
+\section{Neural Networks [28 pt.]}
+
+In this part, we use a neural network to classify the letters in the dataset. In all of the tasks, use ReLU activation functions, a cross-entropy cost function, and a softmax output layer. As an estimate of the running time, training the following neural networks will not take more than an hour on an Intel core i7 1.73-GHz CPU with 4 GB of RAM. Because you will be running a few experiments, it is a good idea to save (``checkpoint'') your model during training at 25\%, 50\%, 75\% and 100\% of the training process, to four separate models. The function \textit{tf.saver} can come in handy for checkpointing and you may reload your model later for inspection or use.
+
+
+\subsection{Geometry of neural networks [6 pt.]}
+\begin{enumerate}
+\item Consider learning a single sigmoid neuron to classify a \textit{linearly separable} binary classification dataset (i.e. a hyperplane decision boundary can perfectly separate out the positive and the negative examples). Show that \textit{without} weight decay, the length of optimal weights vector $W$ learnt on this dataset will be unbounded. In other words, show that the L2 norm of the optimal weights $\|W^* \|_2 = \infty$.  [2 pt.]
+\item Consider learning a single sigmoid neuron on a linearly \textit{inseparable} binary classification problem. Show that \textit{without} weight decay, the length of optimal weights vector $W$ learnt on this dataset will always be bounded. In other words, show that the L2 norm of the optimal weights $\|W^* \|_2 < \infty$. [2 pt.]
+\item Consider learning a single hidden layer neural network to classify a linearly \textit{inseparable} binary classification dataset \st{(i.e. a hyperplane decision boundary can perfectly separate out the positive and the negative examples)}. For all the weight matrices in the neural network, we can first flatten each weight matrix into a vector and let $\text{vec}\{W\}$ denote the vector that is the concatenation of all the flattened weight matrices. Under cross-entropy loss \textit{without} weight decay, give constructive examples to show that some locally optimal solutions have bounded weight vector $\|\text{vec}\{W^*\}\|_2<\infty$ and that some other locally optimal solutions have unbounded weight vector $\|\text{vec}\{W^*\}\|_2 = \infty$.  [2 pt.]
+\end{enumerate}
+
+\subsection{Feedforward fully connected neural networks [8 pt.]}
+\label{subsec:fcnn}
+Implement a simple neural network with one hidden layer and 1000 hidden units. Train your neural network on the entire notMNIST training set of ten classes. Because the neural network loss functions are non-convex, a proper weights initialization scheme is crucial to prevent vanishing gradient during back-propagation as a result of learning stuck at a plateau at the beginning of the training. You will use the Xavier initialization to initialize the weight matrices for all the neural networks in this assignment. That is, each weight matrix is initialized from zero-mean independent Gaussians whose variance is $3 / (\#input\_units + \#output\_units )$. Unlike the weight matrices, the bias units will be initialized to zero.
+
+\begin{enumerate}
+  \item  \textbf{layer-wise building block:} Write a \underline{vectorized} Tensorflow Python function that takes the hidden activations from the previous layer then return \textit{the weighted sum of the inputs}(i.e. the $\mathbf{z}$) for the current hidden layer. You will also initialize the weight matrix and the biases in the same function. You should use Xavier initialization for the weight matrix. Your function should be able to compute the weighted sum for all the data points in your mini-batch at once using matrix matrix multiplication. It should not contain loops over the training examples in the mini-batch. The function should accept two arguments, the input tensor and the number of the hidden units. Include the snippets of the Python code. [2 pt.]
+  \item  \textbf{Learning:} Use your function from the previous question to build your neural network model with ReLU activation functions in TensorFlow and \textit{tf.nn.relu} can be useful. For training your network, you are supposed to find a reasonable value for your learning rate. You should train your neural network for different values of learning rate and choose the one that gives you the fastest convergence in terms of the training loss function. (You might want to ``babysit'' your experiments and terminate a particular run prematurely as soon as you find out that the learning rate value is not very good.) Trying 3 different values should be enough. You may also find it useful to apply a small amount of weight decay to prevent overfitting. (e.g. $\lambda = 3e-4$.) On the training set, validation set and test set, record your classification errors and cross-entropy losses after each epoch. Plot the training, validation, and test classification error vs. the number of epochs. Make a second plot for the cross-entropy loss vs. the number of epochs. Comment on your observations. [4 pt.]
+  \item \textbf{Early stopping:} \textit{Early stopping} is the simplest procedure to avoid overfitting. Determine and highlight the early stopping point on the classification error plot from \st{question 1} {\color{red} question 2.2.2}, and report the training, validation and test classification error at the early stopping point. Are the early stopping points the same on the two plots? Why or why not? Which plot should be used for early stopping, and why? [2 pt.]
+\end{enumerate}
+
+\subsection{Effect of hyperparameters [4 pt.]}
+\begin{enumerate}
+   \item  \textbf{Number of hidden units:}
+Instead of using 1000 hidden units, train different neural networks with $[100, 500, 1000]$ hidden units. Find the best validation error for each one. Choose the model which gives you the best result, and then use it for classifying the test set. What is the number of test errors {\color{red}(or test classification errors)}? In one sentence, summarize your observation about the effect of the number of hidden units on the final results. [2 pt.]
+
+   \item  \textbf{Number of layers:}
+     For this task, train a neural network with two hidden layers of 500 hidden units each (1000 total). Plot the number of training and validation errors {\color{red}(or training and validation classification errors)} vs. the number of epochs. What is the final validation error when training is complete? Using the test set, compare this architecture with the one-layer case. [2 pt.]
+\end{enumerate}
+
+\subsection{Regularization and visualization [6 pt.]}
+Dropout is a powerful technique to reduce overfitting and to enhance the overall performance of the neural network. Using the same architecture in Sec.~\ref{subsec:fcnn}. 
+\begin{enumerate}
+\item  \textbf{Dropout}: Introduce dropout on the hidden layer of the neural network (with dropout rate 0.5) and train you neural network. As you know, dropout should only be used in the training procedure, and the ``mean network'' should be used instead during the evaluation. Plot the number of training and validation errors {\color{red}(or training and validation classification errors)} vs the number of epochs. compare the results with the case that we do not have any dropout. Summarize the observed effect of dropout. (You may want to use the \textit{tf.nn.dropout} utility function.) [2 pt.]
+\item  \textbf{Visualization}: It is generally hard to figure out what the hidden neurons are doing in a neural network. However, one can visualize the incoming weight vector to each hidden neuron in the first hidden layer as an image and inspect what that neuron has learnt from the dataset. For the neural networks we have trained in this assignment, we can visualize the values of the 28x28 incoming weights of each hidden units in the first layer as a grey-scale image. For the models trained with and without dropout, checkpoint the model during training at 25\%, 50\%, 75\% and 100\% of the early stopping point. For each of the checkpoints, make a figure visualizing the 1000 neurons in the first hidden layer. Comment on the learning progression of the hidden neurons, and comment on any difference between the dropout model and the one without dropout. [4 pt.]
+\
+\end{enumerate}
+
+\subsection{Exhaustive search for the best set of hyperparameters  [4 pt.]}
+As you have seen in the previous tasks, hyperparameters play a very important role in neural networks. So, finding the best set of hyperparameters is a critical step toward getting a good result. The most reliable way is exhaustive search, which is trying many different sets of values and picking the model with the lowest validation error. However, this procedure is computationally expensive and it needs to be done with a GPU\footnote{\url{http://www.nvidia.ca/object/what-is-gpu-computing.html}}. A GPU divides a large task into many smaller ones and assigns them to different cores for parallel processing. Unfortunately, not all of you may have access to a GPU, but fortunately we can still use the idea of parallel processing. The whole class can be a GPU or a cluster server, and each student group will be one of its computation nodes!
+To achieve this goal, each group will perform some experiments and report their results.
+We will compare all the results and let you know the best model and the best test error rate that can be achieved.
+\begin{enumerate}
+  \item \textbf{Random search}: First, try to set the random seeds in Numpy and TensorFlow libraries differently from other groups. (e.g. seed using the time of your experiments or some combination of your student IDs). Randomly sample the \textit{natural log of learning rate} uniformly between -7.5 and -4.5, the \textit{number of layers} from 1 to 5, the \textit{number of hidden units per layer} between 100 and 500, and the natural log of weight decay coefficient uniformly from the interval $[-9, -6]$. Also, randomly choose your model to use \textit{dropout} or not. Using these hyperparameters, train your neural network and report its validation and test \textit{classification error}. Repeat this task for five models, and report their results. [2 pt.] 
+    
+  \item \textbf{Exchange ideas among the groups }: Collaboration is the key ingredient of major scientific progress and innovation. Advances in the fields of artificial intelligence and machine learning tend to depend on the rapid sharing of ideas and datasets. You will now exchange and compare your experimental results and the hyperparameter settings with other groups. (Yes, this means you will have to talk to other students in the class in person or use Piazza). You will now use the best hyperparameter you heard from someone who heard from someone else and report the best test error rate that can be achieved under the hyperparameter space in this question. Let us hope the wisdom the crowd will converge to a single best model. [2 pt.]
+\end{enumerate}
+
+
+
+
+\end{document}
+

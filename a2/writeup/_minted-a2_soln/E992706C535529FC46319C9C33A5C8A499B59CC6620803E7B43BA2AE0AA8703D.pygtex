@@ -1,0 +1,12 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{linear}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{numHidden}\PYG{p}{):}
+    \PYG{n}{numInput} \PYG{o}{=} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{x}\PYG{o}{.}\PYG{n}{get\PYGZus{}shape}\PYG{p}{()[}\PYG{l+m+mi}{1}\PYG{p}{])}
+    \PYG{n}{tmp} \PYG{o}{=} \PYG{p}{(}\PYG{n}{numInput}\PYG{o}{+}\PYG{n}{numHidden}\PYG{p}{)}
+    \PYG{n}{weights} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{Variable}\PYG{p}{(}\PYG{n}{tf}\PYG{o}{.}\PYG{n}{random\PYGZus{}normal}\PYG{p}{([}\PYG{n}{numInput}\PYG{p}{,} \PYG{n}{numHidden}\PYG{p}{],}
+                          \PYG{n}{stddev}\PYG{o}{=}\PYG{n}{tf}\PYG{o}{.}\PYG{n}{sqrt}\PYG{p}{(}\PYG{l+m+mf}{1.}\PYG{o}{/}\PYG{n}{tmp}\PYG{p}{)),}
+                          \PYG{n}{name} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}w\PYGZdq{}}\PYG{p}{)}
+    \PYG{n}{bias} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{Variable}\PYG{p}{(}\PYG{n}{tf}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(} \PYG{p}{[}\PYG{n}{numHidden}\PYG{p}{,]),} \PYG{n}{name}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}b\PYGZdq{}}\PYG{p}{)}
+    \PYG{n}{weights\PYGZus{}loss} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{reduce\PYGZus{}sum}\PYG{p}{(}\PYG{n}{weights}\PYG{o}{**}\PYG{l+m+mi}{2}\PYG{p}{)}\PYG{o}{/}\PYG{l+m+mf}{2.}
+    \PYG{n}{tf}\PYG{o}{.}\PYG{n}{add\PYGZus{}to\PYGZus{}collection}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}weights\PYGZus{}loss\PYGZdq{}}\PYG{p}{,} \PYG{n}{weights\PYGZus{}loss}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{nn}\PYG{o}{.}\PYG{n}{bias\PYGZus{}add}\PYG{p}{(}\PYG{n}{tf}\PYG{o}{.}\PYG{n}{matmul}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{weights}\PYG{p}{),} \PYG{n}{bias}\PYG{p}{)}
+\end{Verbatim}

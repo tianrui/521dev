@@ -1,0 +1,27 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{buildGraph\PYGZus{}logistic}\PYG{p}{():}
+    \PYG{c+c1}{\PYGZsh{} Variable creation}
+    \PYG{n}{W} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{Variable}\PYG{p}{(}\PYG{n}{tf}\PYG{o}{.}\PYG{n}{truncated\PYGZus{}normal}\PYG{p}{(}\PYG{n}{shape}\PYG{o}{=}\PYG{p}{[}\PYG{l+m+mi}{64}\PYG{p}{,}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n}{stddev}\PYG{o}{=}\PYG{l+m+mf}{0.5}\PYG{p}{),} \PYG{n}{name}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}weights\PYGZsq{}}\PYG{p}{)}
+    \PYG{n}{b} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{Variable}\PYG{p}{(}\PYG{l+m+mf}{0.0}\PYG{p}{,} \PYG{n}{name}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}biases\PYGZsq{}}\PYG{p}{)}
+    \PYG{n}{X} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{placeholder}\PYG{p}{(}\PYG{n}{tf}\PYG{o}{.}\PYG{n}{float32}\PYG{p}{,} \PYG{p}{[}\PYG{n+nb+bp}{None}\PYG{p}{,} \PYG{l+m+mi}{64}\PYG{p}{],} \PYG{n}{name}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}input\PYGZus{}x\PYGZsq{}}\PYG{p}{)}
+    \PYG{n}{y\PYGZus{}target} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{placeholder}\PYG{p}{(}\PYG{n}{tf}\PYG{o}{.}\PYG{n}{float32}\PYG{p}{,} \PYG{p}{[}\PYG{n+nb+bp}{None}\PYG{p}{,}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n}{name}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}target\PYGZus{}y\PYGZsq{}}\PYG{p}{)}
+    \PYG{n}{wd\PYGZus{}lambda} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{placeholder}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}float32\PYGZdq{}}\PYG{p}{,} \PYG{n}{name}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}wd\PYGZus{}lambda\PYGZsq{}}\PYG{p}{)}
+
+
+    \PYG{c+c1}{\PYGZsh{} Graph definition}
+    \PYG{n}{y\PYGZus{}logit} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{matmul}\PYG{p}{(}\PYG{n}{X}\PYG{p}{,}\PYG{n}{W}\PYG{p}{)} \PYG{o}{+} \PYG{n}{b}
+    \PYG{n}{y\PYGZus{}predicted} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{nn}\PYG{o}{.}\PYG{n}{sigmoid}\PYG{p}{(}\PYG{n}{y\PYGZus{}logit}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} Error definition}
+    \PYG{n}{crossEntropyError} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{reduce\PYGZus{}mean}\PYG{p}{(}
+                    \PYG{n}{tf}\PYG{o}{.}\PYG{n}{nn}\PYG{o}{.}\PYG{n}{sigmoid\PYGZus{}cross\PYGZus{}entropy\PYGZus{}with\PYGZus{}logits}\PYG{p}{(}\PYG{n}{y\PYGZus{}logit}\PYG{p}{,} \PYG{n}{y\PYGZus{}target}\PYG{p}{),}
+                                  \PYG{n}{name}\PYG{o}{=}\PYG{l+s+s1}{\PYGZsq{}mean\PYGZus{}cross\PYGZus{}entropy\PYGZsq{}}\PYG{p}{)}
+    \PYG{n}{weight\PYGZus{}loss} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{reduce\PYGZus{}sum}\PYG{p}{(}\PYG{n}{W}\PYG{o}{*}\PYG{n}{W}\PYG{p}{)} \PYG{o}{*} \PYG{n}{wd\PYGZus{}lambda} \PYG{o}{*} \PYG{l+m+mf}{0.5}
+
+    \PYG{n}{loss} \PYG{o}{=} \PYG{n}{crossEntropyError} \PYG{o}{+} \PYG{n}{weight\PYGZus{}loss}
+    \PYG{c+c1}{\PYGZsh{} Training mechanism}
+    \PYG{n}{optimizer} \PYG{o}{=} \PYG{n}{tf}\PYG{o}{.}\PYG{n}{train}\PYG{o}{.}\PYG{n}{GradientDescentOptimizer}\PYG{p}{(}\PYG{n}{learning\PYGZus{}rate} \PYG{o}{=} \PYG{l+m+mf}{0.01}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{}optimizer = tf.train.AdamOptimizer(learning\PYGZus{}rate = 0.001)}
+    \PYG{n}{train} \PYG{o}{=} \PYG{n}{optimizer}\PYG{o}{.}\PYG{n}{minimize}\PYG{p}{(}\PYG{n}{loss}\PYG{o}{=}\PYG{n}{loss}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{W}\PYG{p}{,} \PYG{n}{b}\PYG{p}{,} \PYG{n}{X}\PYG{p}{,} \PYG{n}{y\PYGZus{}target}\PYG{p}{,} \PYG{n}{y\PYGZus{}predicted}\PYG{p}{,} \PYG{n}{crossEntropyError}\PYG{p}{,} \PYG{n}{wd\PYGZus{}lambda}\PYG{p}{,} \PYG{n}{train}
+\end{Verbatim}

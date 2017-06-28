@@ -1,0 +1,18 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{with} \PYG{n}{np}\PYG{o}{.}\PYG{n}{load}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}notMNIST.npz\PYGZdq{}}\PYG{p}{)} \PYG{k}{as} \PYG{n}{data} \PYG{p}{:}
+    \PYG{n}{Data}\PYG{p}{,} \PYG{n}{Target} \PYG{o}{=} \PYG{n}{data} \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}images\PYGZdq{}}\PYG{p}{],} \PYG{n}{data}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}labels\PYGZdq{}}\PYG{p}{]}
+    \PYG{n}{posClass} \PYG{o}{=} \PYG{l+m+mi}{2}
+    \PYG{n}{negClass} \PYG{o}{=} \PYG{l+m+mi}{9}
+    \PYG{n}{dataIndx} \PYG{o}{=} \PYG{p}{(}\PYG{n}{Target}\PYG{o}{==}\PYG{n}{posClass}\PYG{p}{)} \PYG{o}{+} \PYG{p}{(}\PYG{n}{Target}\PYG{o}{==}\PYG{n}{negClass}\PYG{p}{)}
+    \PYG{n}{Data} \PYG{o}{=} \PYG{n}{Data}\PYG{p}{[}\PYG{n}{dataIndx}\PYG{p}{]}\PYG{o}{/}\PYG{l+m+mf}{255.}
+    \PYG{n}{Target} \PYG{o}{=} \PYG{n}{Target}\PYG{p}{[}\PYG{n}{dataIndx}\PYG{p}{]}\PYG{o}{.}\PYG{n}{reshape}\PYG{p}{(}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{,} \PYG{l+m+mi}{1}\PYG{p}{)}
+    \PYG{n}{Target}\PYG{p}{[}\PYG{n}{Target}\PYG{o}{==}\PYG{n}{posClass}\PYG{p}{]} \PYG{o}{=} \PYG{l+m+mi}{1}
+    \PYG{n}{Target}\PYG{p}{[}\PYG{n}{Target}\PYG{o}{==}\PYG{n}{negClass}\PYG{p}{]} \PYG{o}{=} \PYG{l+m+mi}{0}
+    \PYG{n}{np}\PYG{o}{.}\PYG{n}{random}\PYG{o}{.}\PYG{n}{seed}\PYG{p}{(}\PYG{l+m+mi}{521}\PYG{p}{)}
+    \PYG{n}{randIndx} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{arange}\PYG{p}{(}\PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{Data}\PYG{p}{))}
+    \PYG{n}{np}\PYG{o}{.}\PYG{n}{random}\PYG{o}{.}\PYG{n}{shuffle}\PYG{p}{(}\PYG{n}{randIndx}\PYG{p}{)}
+    \PYG{n}{Data}\PYG{p}{,} \PYG{n}{Target} \PYG{o}{=} \PYG{n}{Data}\PYG{p}{[}\PYG{n}{randIndx}\PYG{p}{],} \PYG{n}{Target}\PYG{p}{[}\PYG{n}{randIndx}\PYG{p}{]}
+    \PYG{n}{trainData}\PYG{p}{,} \PYG{n}{trainTarget} \PYG{o}{=} \PYG{n}{Data}\PYG{p}{[:}\PYG{l+m+mi}{3500}\PYG{p}{],} \PYG{n}{Target}\PYG{p}{[:}\PYG{l+m+mi}{3500}\PYG{p}{]}
+    \PYG{n}{validData}\PYG{p}{,} \PYG{n}{validTarget} \PYG{o}{=} \PYG{n}{Data}\PYG{p}{[}\PYG{l+m+mi}{3500}\PYG{p}{:}\PYG{l+m+mi}{3600}\PYG{p}{],} \PYG{n}{Target}\PYG{p}{[}\PYG{l+m+mi}{3500}\PYG{p}{:}\PYG{l+m+mi}{3600}\PYG{p}{]}
+    \PYG{n}{testData}\PYG{p}{,} \PYG{n}{testTarget} \PYG{o}{=} \PYG{n}{Data}\PYG{p}{[}\PYG{l+m+mi}{3600}\PYG{p}{:],} \PYG{n}{Target}\PYG{p}{[}\PYG{l+m+mi}{3600}\PYG{p}{:]}
+\end{Verbatim}
