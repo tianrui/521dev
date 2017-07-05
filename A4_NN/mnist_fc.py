@@ -98,7 +98,7 @@ def buildfc(x, decay_coef):
     return y, keep_prob
     
 
-def deepnn(x):
+def deepnn(x, decay_coef=0, ysize=10):
   """deepnn builds the graph for a deep net for classifying digits.
 
   Args:
@@ -117,15 +117,15 @@ def deepnn(x):
   x_image = tf.reshape(x, [-1, 32, 32, 1])
 
   # First convolutional layer - maps one grayscale image to 32 feature maps.
-  W_conv1 = weight_variable([5, 5, 1, 32])
+  W_conv1 = weight_variable([5, 5, 1, 32], decay_coef)
   b_conv1 = bias_variable([32])
   h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 
   # Pooling layer - downsamples by 2X.
   h_pool1 = max_pool_2x2(h_conv1)
 
-  # Second convolutional layer -- maps 32 feature maps to 64.
-  # W_conv2 = weight_variable([5, 5, 32, 64])
+  # # Second convolutional layer -- maps 32 feature maps to 64.
+  # W_conv2 = weight_variable([5, 5, 32, 64], decay_coef)
   # b_conv2 = bias_variable([64])
   # h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 
@@ -134,10 +134,10 @@ def deepnn(x):
 
   # Fully connected layer 1 -- after 2 round of downsampling, our 28x28 image
   # is down to 7x7x64 feature maps -- maps this to 1024 features.
-  W_fc1 = weight_variable([16 * 16 * 32, 1024])
+  W_fc1 = weight_variable([16 * 16 * 32, 1024], decay_coef)
   b_fc1 = bias_variable([1024])
 
-  h_pool2_flat = tf.reshape(h_pool1, [-1, 16*16*32])
+  h_pool2_flat = tf.reshape(h_pool1, [-1, 16 * 16 * 32])
   h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
   # Dropout - controls the complexity of the model, prevents co-adaptation of
@@ -145,9 +145,9 @@ def deepnn(x):
   keep_prob = tf.placeholder(tf.float32)
   h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
-  # Map the 1024 features to 10 classes, one for each digit
-  W_fc2 = weight_variable([1024, 10])
-  b_fc2 = bias_variable([10])
+  # Map the 1024 features to 6 classes, one for each celeb
+  W_fc2 = weight_variable([1024, ysize], decay_coef)
+  b_fc2 = bias_variable([ysize])
 
   y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
   return y_conv, keep_prob, W_conv1
@@ -265,8 +265,8 @@ def notmnist_fc(_):
   W_1 = tf.placeholder(tf.float32, [None, 1000])
 
   # Build the graph for the fc net
-  #y_pred, keep_prob = build_1(x, decay_coef, 1000)
-  y_pred, keep_prob, W_1 = build_1_vis(x, decay_coef, 1000)
+  y_pred, keep_prob = build_2(x, decay_coef, 500)
+  #y_pred, keep_prob, W_1 = build_1_vis(x, decay_coef, 1000)
 
   cross_entropy = tf.reduce_mean(
       tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_pred))
@@ -329,8 +329,8 @@ def notmnist_fc(_):
       test_acc[j] = acc
 
       # visualizations
-      if j == int(epochs/4) or j == int(epochs/2) or j == int(epochs*3/4) or j == epochs-1:
-          train_vis.append(W_1.eval())
+      #if j == int(epochs/4) or j == int(epochs/2) or j == int(epochs*3/4) or j == epochs-1:
+      #    train_vis.append(W_1.eval())
 
 
 
@@ -341,7 +341,7 @@ def notmnist_fc(_):
     end = time.time()
     print('Time elapsed: %f' % (end-start))
     # save visualization data
-    np.savez('./14_vis', train_vis)
+    #np.savez('./14_vis', train_vis)
 
     # plot figures
     plt.clf()
@@ -351,7 +351,7 @@ def notmnist_fc(_):
     plt.xlabel('epoch')
     plt.ylabel('accuracy')
     plt.legend()
-    plt.savefig('./part141_acc_nodrop.jpg')
+    plt.savefig('./part132_acc_500.jpg')
     plt.show()
     
     plt.plot(train_ce, label='training CE')
@@ -360,34 +360,53 @@ def notmnist_fc(_):
     plt.xlabel('epoch')
     plt.ylabel('cross-entropy')
     plt.legend()
-    plt.savefig('./part141_ce_nodrop.jpg')
+    plt.savefig('./part132_ce_500.jpg')
     plt.show()
 
 def facescrub_train(_):
+    # Load data
+    imgs = np.load('./facescrub/data.npy')
+    tars = np.load('./facescrub/target.npy')
+    scrubid = tars[:, 0]
+    scrubgen = tars[:,1]
+
     # Define hyperparameters
     batch_size = 32
-    epochs = 50
-    train_size = 15000
-    valid_size = 1000
+    epochs = 100
+    total_size = imgs.shape[0]
+    train_size = int(0.8 * total_size)
+    valid_size = int(0.1 * total_size)
     decay_coef = 3e-4
-    # Define logging arrays
+
+    # Partition data
+    scrub_x = imgs
+    scrub_y = scrubid
+    randIdx = np.arange(imgs.shape[0])
+    np.random.seed(521)
+    np.random.shuffle(randIdx)
+    scrub_x = imgs[randIdx]/255.
+    scrub_y = scrub_y[randIdx]
+    scrub_x = np.reshape(scrub_x, (-1, 32, 32))
+    scrub_y = np.eye(6)[scrub_y]
+    scrub_xtrain, scrub_ytrain = scrub_x[:train_size], scrub_y[:train_size]
+    scrub_xvalid, scrub_yvalid = scrub_x[train_size:train_size+valid_size], scrub_y[train_size:train_size+valid_size]
+    scrub_xtest, scrub_ytest = scrub_x[train_size+valid_size:], scrub_y[train_size+valid_size:]
+
+   # Define logging arrays
     train_ce = np.zeros(epochs)
     train_acc = np.zeros(epochs)
     valid_ce = np.zeros(epochs)
     valid_acc = np.zeros(epochs)
     test_ce = np.zeros(epochs)
     test_acc = np.zeros(epochs)
-
-    imgs = np.load('./facescrub/data.npy')
-    tars = np.load('./facescrub/target.npy')
-    scrubid = np.eye(6)[tars[:, 0]]
-    scrubgen = tars[:,1]
+    train_vis = []
 
     # Create the model
-    x = tf.placeholder(tf.float32, [None, 28, 28])
-    y_ = tf.placeholder(tf.float32, [None, 10])
+    x = tf.placeholder(tf.float32, [None, 32, 32])
+    y_ = tf.placeholder(tf.float32, [None, 6])
+    W_conv1 = tf.placeholder(tf.float32, [5, 5, 1, 32])
     
-    y_, keep_prob, W_conv1 = deepnn(x)
+    y_pred, keep_prob, W_conv1 = deepnn(x, decay_coef, ysize=6)
 
     # Define loss
     cross_entropy = tf.reduce_mean(
@@ -395,7 +414,7 @@ def facescrub_train(_):
     tf.add_to_collection('losses', cross_entropy)
     loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
   
-    train_step = tf.train.AdamOptimizer(1e-4).minimize(loss)
+    train_step = tf.train.AdamOptimizer(2e-4).minimize(loss)
     correct_prediction = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y_, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     # Config session for memory
@@ -409,26 +428,26 @@ def facescrub_train(_):
   
       for j in range(epochs):
         for i in range((int)(train_size/batch_size)):
-            batch = [notmnist_xtrain[(i*batch_size)%len(notmnist_xtrain): ((i+1)*batch_size)%len(notmnist_xtrain)], notmnist_ytrain[(i*batch_size)%len(notmnist_ytrain): (i+1)*batch_size]]
+            batch = [scrub_xtrain[(i*batch_size)%len(scrub_xtrain): ((i+1)*batch_size)%len(scrub_xtrain)], scrub_ytrain[(i*batch_size)%len(scrub_ytrain): (i+1)*batch_size]]
             if i % 100 == 0:
               train_accuracy = accuracy.eval(feed_dict={
                   x: batch[0], y_: batch[1], keep_prob: 1.0})
               print('step %d, training accuracy %g' % (i, train_accuracy))
             train_ce[j] += cross_entropy.eval(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
             train_acc[j] += accuracy.eval(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
-            train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
+            train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
   
-        train_ce[j] /= int(notmnist_xtrain.shape[0] / batch_size)
-        train_acc[j] /= int(notmnist_xtrain.shape[0] / batch_size)
+        train_ce[j] /= int(scrub_xtrain.shape[0] / batch_size)
+        train_acc[j] /= int(scrub_xtrain.shape[0] / batch_size)
         acc = 0
         ce = 0
-        for i in range(int(notmnist_xvalid.shape[0] / batch_size)):
-          xtest, ytest = [notmnist_xvalid[(i*batch_size)%len(notmnist_xvalid): ((i+1)*batch_size)%len(notmnist_xvalid)], notmnist_yvalid[(i*batch_size)%len(notmnist_yvalid): ((i+1)*batch_size)%len(notmnist_yvalid)]]
+        for i in range(int(scrub_xvalid.shape[0] / batch_size)):
+          xtest, ytest = [scrub_xvalid[(i*batch_size)%len(scrub_xvalid): ((i+1)*batch_size)%len(scrub_xvalid)], scrub_yvalid[(i*batch_size)%len(scrub_yvalid): ((i+1)*batch_size)%len(scrub_yvalid)]]
           acc += accuracy.eval(feed_dict={x: xtest, y_: ytest, keep_prob: 1.0})
           ce += cross_entropy.eval(feed_dict={x: xtest, y_: ytest, keep_prob: 1.0})
   
-        acc /= int(notmnist_xvalid.shape[0] / batch_size)
-        ce /= int(notmnist_xvalid.shape[0] / batch_size)
+        acc /= int(scrub_xvalid.shape[0] / batch_size)
+        ce /= int(scrub_xvalid.shape[0] / batch_size)
   
         print('validation accuracy %g' % acc)
         print('validation cross-entropy %g' % ce)
@@ -437,13 +456,13 @@ def facescrub_train(_):
     
         acc = 0
         ce = 0
-        for i in range(int(notmnist_xtest.shape[0] / batch_size)):
-          xtest, ytest = [notmnist_xtest[(i*batch_size)%len(notmnist_xtest): ((i+1)*batch_size)%len(notmnist_xtest)], notmnist_ytest[(i*batch_size)%len(notmnist_ytest): ((i+1)*batch_size)%len(notmnist_ytest)]]
+        for i in range(int(scrub_xtest.shape[0] / batch_size)):
+          xtest, ytest = [scrub_xtest[(i*batch_size)%len(scrub_xtest): ((i+1)*batch_size)%len(scrub_xtest)], scrub_ytest[(i*batch_size)%len(scrub_ytest): ((i+1)*batch_size)%len(scrub_ytest)]]
           acc += accuracy.eval(feed_dict={x: xtest, y_: ytest, keep_prob: 1.0})
           ce += cross_entropy.eval(feed_dict={x: xtest, y_: ytest, keep_prob: 1.0})
   
-        acc /= int(notmnist_xtest.shape[0] / batch_size)
-        ce /= int(notmnist_xtest.shape[0] / batch_size)
+        acc /= int(scrub_xtest.shape[0] / batch_size)
+        ce /= int(scrub_xtest.shape[0] / batch_size)
   
         print('test accuracy %g' % acc)
         print('test cross-entropy %g' % ce)
@@ -452,7 +471,29 @@ def facescrub_train(_):
   
         # visualizations
         if j == int(epochs/4) or j == int(epochs/2) or j == int(epochs*3/4) or j == epochs-1:
-            train_vis.append(W_1.eval())
+            train_vis.append(W_conv1.eval())
+
+    # save visualization data
+    np.savez('./16_vis', train_vis)
+    # plot figures
+    plt.clf()
+    plt.plot(train_acc, label='training accuracy')
+    plt.plot(valid_acc, label='validation accuracy')
+    plt.plot(test_acc, label='test accuracy')
+    plt.xlabel('epoch')
+    plt.ylabel('accuracy')
+    plt.legend()
+    plt.savefig('./part16_acc.jpg')
+    plt.show()
+    
+    plt.plot(train_ce, label='training CE')
+    plt.plot(valid_ce, label='validation CE')
+    plt.plot(test_ce, label='test CE')
+    plt.xlabel('epoch')
+    plt.ylabel('cross-entropy')
+    plt.legend()
+    plt.savefig('./part16_ce.jpg')
+    plt.show()
 
 
 
@@ -467,4 +508,5 @@ if __name__ == '__main__':
   FLAGS, unparsed = parser.parse_known_args()
   #tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
   #tf.app.run(main=part1, argv=[sys.argv[0]] + unparsed)
-  tf.app.run(main=notmnist_fc, argv=[sys.argv[0]] + unparsed)
+  #tf.app.run(main=notmnist_fc, argv=[sys.argv[0]] + unparsed)
+  tf.app.run(main=facescrub_train, argv=[sys.argv[0]] + unparsed)
