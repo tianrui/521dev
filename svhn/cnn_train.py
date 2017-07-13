@@ -146,7 +146,7 @@ def main(_):
   # Import data
   train_x, train_y, test_x, test_y = load_data(data_dir='/home/rxiao/data/svhn/')
   # Define hyperparameters
-  batch_size = 24
+  batch_size = 16
   epochs = 100
   train_size = train_x.shape[-1]
   test_size = test_x.shape[-1]
