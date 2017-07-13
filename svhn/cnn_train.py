@@ -76,8 +76,8 @@ def deepnn(x):
 
   # Fully connected layer 1 -- after 2 round of downsampling, our 28x28 image
   # is down to 7x7x64 feature maps -- maps this to 1024 features.
-  W_fc1 = weight_variable([8 * 8 * 64, 4096])
-  b_fc1 = bias_variable([4096])
+  W_fc1 = weight_variable([8 * 8 * 64, 1024])
+  b_fc1 = bias_variable([1024])
 
   h_pool2_flat = tf.reshape(h_pool2, [-1, 8*8*64])
   h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
@@ -89,14 +89,13 @@ def deepnn(x):
 
   # Fully connected layer 2 -- after 2 round of downsampling, our 28x28 image
   # is down to 7x7x64 feature maps -- maps this to 1024 features.
-  W_fc2 = weight_variable([4096, 1024])
+  W_fc2 = weight_variable([1024, 1024])
   b_fc2 = bias_variable([1024])
 
   h_fc2 = tf.nn.relu(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 
   # Dropout - controls the complexity of the model, prevents co-adaptation of
   # features.
-  keep_prob = tf.placeholder(tf.float32)
   h_fc2_drop = tf.nn.dropout(h_fc2, keep_prob)
 
 
@@ -142,6 +141,10 @@ def load_data(data_dir='./Data/SVHN'):
 def load_batch(x, y, i, batch_size):
   return [x[:, :, :, (i*batch_size) % x.shape[-1] : ((i+1)*batch_size) % x.shape[-1]], y[(i*batch_size) % x.shape[-1] : (i+1)*batch_size % x.shape[-1], :]]
 
+def np_accuracy(ytar, ypred):
+    # Numpy implementation of accuracy
+    return np.sum(np.argmax(ytar, 1) == np.argmax(ypred, 1))/ytar.shape[0]
+
 def main(_):
   # Import data
   train_x, train_y, test_x, test_y = load_data(data_dir='/home/rxiao/data/svhn/')
@@ -154,6 +157,7 @@ def main(_):
   train_acc = np.zeros(epochs)
   test_ce = np.zeros(epochs)
   test_acc = np.zeros(epochs)
+  pdb.set_trace()
 
   # Create the model
   x = tf.placeholder(tf.float32, [32, 32, 3, None])
@@ -185,12 +189,11 @@ def main(_):
       for i in range(int(train_size/batch_size)):
         batch = load_batch(train_x, train_y, i, batch_size)
         if i % 100 == 0:
-          train_accuracy = accuracy.eval(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
-          train_centropy = cross_entropy.eval(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
-          print('step %d, training accuracy %g, cross-entropy %g' % (i, train_accuracy, train_centropy))
+          train_accuracy, train_centropy, preds = sess.run([accuracy, cross_entropy, y_conv], feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
+          print('step %d, training accuracy %g, cross-entropy %g, numpy accuracy %g' % (i, train_accuracy, train_centropy, np_accuracy(batch[1], preds)))
         train_ce[j] += cross_entropy.eval(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
         train_acc[j] += accuracy.eval(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
-        train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+        train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.9})
 
       train_ce[j] /= int(train_size / batch_size)
       train_acc[j] /= int(train_size/ batch_size)
