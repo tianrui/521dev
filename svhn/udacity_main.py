@@ -3,12 +3,14 @@ import scipy.io
 import numpy as np
 import matplotlib.pyplot as plt
 import pdb
+import time
 from collections import Counter
+
 #==================EXTRACTING AND ANALYSING DATA FROM .mat FILES===============
 """
 X and Y Components of Training and Testing Data
 """
-data_dir = '/home/rxiao/data/svhn/'
+data_dir = './Data/SVHN/'
 train_data = scipy.io.loadmat(data_dir + 'train_32x32.mat')['X']
 train_labels = scipy.io.loadmat(data_dir + 'train_32x32.mat')['y']
 test_data = scipy.io.loadmat(data_dir + 'test_32x32.mat')['X']
@@ -33,7 +35,7 @@ plt.show()
 #============================================================================
 
 
-print shape_train[3], "Images with", shape_train[0], "x", shape_train[0], "RGB grid"
+print(shape_train[3], "Images with", shape_train[0], "x", shape_train[0], "RGB grid")
 
 
 #==================NORMALISATION AND PREPROCESSING=============================================
@@ -48,7 +50,7 @@ Converting Labels to One Hot Encoding and Image Matrix to favourable dimensions
 def reformat(data, Y):
     xtrain = []
     trainLen = data.shape[3]
-    for x in xrange(trainLen):
+    for x in np.arange(trainLen):
         xtrain.append(data[:,:,:,x])
     xtrain = np.asarray(xtrain)
     Ytr=[]
@@ -98,7 +100,7 @@ depth = 16
 hidden = 128
 dropout = 0.9375
 
-batch = 16
+batch = 32
 learning_rate = 0.001
 
 """
@@ -151,9 +153,9 @@ def model(data):
     return tf.matmul(dropout_layer, layer4_weights) + layer4_biases
 
 logits = model(tf_train_dataset)
-pdb.set_trace()
+
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits))
-optimizer = tf.train.AdamOptimizer(0.001).minimize(loss)
+optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 train_prediction = tf.nn.softmax(logits)
 test_prediction = tf.nn.softmax(model(tf_test_dataset))
@@ -170,6 +172,11 @@ def accuracy(predictions, labels):
 
 #   Number of iterations
 num_steps = 10000
+loss_vec = np.zeros(num_steps)
+acc_vec = np.zeros(num_steps)
+testloss_vec = np.zeros(num_steps)
+testacc_vec = np.zeros(num_steps)
+start = time.time()
 
 with tf.Session() as session:
     tf.initialize_all_variables().run()
@@ -185,12 +192,14 @@ with tf.Session() as session:
         _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
         #   Calculating the Accuracy of the predictions
         accu = accuracy(predictions, batch_labels)
+        acc_vec[step] = accu
+        loss_vec[step] = l
         if (step % 50 == 0):
             print('Minibatch loss at step %d: %f' % (step, l))
             print('Minibatch accuracy: %.1f%%' % accu)
         average += accu
-    print "Average Accuracy : ", (average / num_steps)
-    print "END OF TRAINING"
+    print("Average Accuracy : %g" % (average / num_steps))
+    print("END OF TRAINING")
     average = 0
     for step in range(num_steps):
         #   Constucting the batch from the data set
@@ -202,10 +211,20 @@ with tf.Session() as session:
         _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
         #   Calculating the Accuracy of the predictions
         accu = accuracy(predictions, batch_labels)
+        testacc_vec[step] = accu
+        testloss_vec[step] = l
         if (step % 50 == 0):
-            print('Minibatch loss at step %d: %f' % (step, l))
-            print('Minibatch accuracy: %.1f%%' % accu)
+            print('Test minibatch loss at step %d: %f' % (step, l))
+            print('Test minibatch accuracy: %.1f%%' % accu)
         average += accu
-    print "Average Accuracy : ", (average / num_steps)
-    print "END OF TESTING"
+    print("Average test accuracy : %g" % (average / num_steps))
+    print("END OF TRAINING")
+    end = time.time()
+    print('Time elapsed: %f s' % (end-start))
+
+    np.savez("./SVHN/udacity_stats.npz", 
+        loss_vec=loss_vec, 
+        acc_vec=acc_vec, 
+        testloss_vec=testloss_vec, 
+        testacc_vec=testacc_vec)
 #============================================================================
