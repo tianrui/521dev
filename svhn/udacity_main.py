@@ -1,10 +1,14 @@
 import tensorflow as tf 
 import scipy.io
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import pdb
 import time
+import os
 from collections import Counter
+
+# Set CUDA visible devices choose GPU or CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = ''
 
 #==================EXTRACTING AND ANALYSING DATA FROM .mat FILES===============
 """
@@ -20,18 +24,18 @@ shape_test = test_data.shape
 """
 Plotting Class Labels against their respective frequencies in a Bar Graph
 """
-temp_labels = train_labels.reshape(73257).tolist()
-temp_labels = dict(Counter(temp_labels))
-plt.bar(range(len(temp_labels)), temp_labels.values(), align='center', label='Training Labels')
-plt.xticks(range(len(temp_labels)), temp_labels.keys())
-temp_labels = test_labels.reshape(26032).tolist()
-temp_labels = dict(Counter(temp_labels))
-plt.bar(range(len(temp_labels)), temp_labels.values(), align='center', color='red', label='Testing Labels')
-plt.legend()
-plt.xlabel('Class Labels')
-plt.ylabel('Frequency')
-plt.title('Frequency Distribution of Class Labels')
-plt.show()
+# temp_labels = train_labels.reshape(73257).tolist()
+# temp_labels = dict(Counter(temp_labels))
+# plt.bar(range(len(temp_labels)), temp_labels.values(), align='center', label='Training Labels')
+# plt.xticks(range(len(temp_labels)), temp_labels.keys())
+# temp_labels = test_labels.reshape(26032).tolist()
+# temp_labels = dict(Counter(temp_labels))
+# plt.bar(range(len(temp_labels)), temp_labels.values(), align='center', color='red', label='Testing Labels')
+# plt.legend()
+# plt.xlabel('Class Labels')
+# plt.ylabel('Frequency')
+# plt.title('Frequency Distribution of Class Labels')
+# plt.show()
 #============================================================================
 
 
@@ -96,11 +100,11 @@ channels = 3
 
 n_labels = 10
 patch = 5
-depth = 16
+depth = 32
 hidden = 128
-dropout = 0.9375
+dropout = 0.8
 
-batch = 32
+batch = 24
 learning_rate = 0.001
 
 """
@@ -171,54 +175,60 @@ def accuracy(predictions, labels):
           / predictions.shape[0])
 
 #   Number of iterations
-num_steps = 10000
-loss_vec = np.zeros(num_steps)
-acc_vec = np.zeros(num_steps)
-testloss_vec = np.zeros(num_steps)
-testacc_vec = np.zeros(num_steps)
+epochs = 100
+num_steps = int(train_labels.shape[0] / batch)
+loss_vec = np.zeros(epochs)
+acc_vec = np.zeros(epochs)
+testloss_vec = np.zeros(epochs)
+testacc_vec = np.zeros(epochs)
 start = time.time()
 
 with tf.Session() as session:
     tf.initialize_all_variables().run()
     print('Initialized')
-    average = 0
-    for step in range(num_steps):
-        #   Constucting the batch from the data set
-        offset = (step * batch) % (train_labels.shape[0] - batch)
-        batch_data = train_data[offset:(offset + batch), :, :, :]
-        batch_labels = train_labels[offset:(offset + batch), :]
-        #   Dictionary to be fed to TensorFlow Session
-        feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels, dropout: 0.93}
-        _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
-        #   Calculating the Accuracy of the predictions
-        accu = accuracy(predictions, batch_labels)
-        acc_vec[step] = accu
-        loss_vec[step] = l
-        if (step % 50 == 0):
-            print('Minibatch loss at step %d: %f' % (step, l))
-            print('Minibatch accuracy: %.1f%%' % accu)
-        average += accu
-    print("Average Accuracy : %g" % (average / num_steps))
-    print("END OF TRAINING")
-    average = 0
-    for step in range(num_steps):
-        #   Constucting the batch from the data set
-        offset = (step * batch) % (test_labels.shape[0] - batch)
-        batch_data = test_data[offset:(offset + batch), :, :, :]
-        batch_labels = test_labels[offset:(offset + batch), :]
-        #   Dictionary to be fed to TensorFlow Session
-        feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels, dropout: 0.93}
-        _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
-        #   Calculating the Accuracy of the predictions
-        accu = accuracy(predictions, batch_labels)
-        testacc_vec[step] = accu
-        testloss_vec[step] = l
-        if (step % 50 == 0):
-            print('Test minibatch loss at step %d: %f' % (step, l))
-            print('Test minibatch accuracy: %.1f%%' % accu)
-        average += accu
-    print("Average test accuracy : %g" % (average / num_steps))
-    print("END OF TRAINING")
+    for step in range(epochs):
+        average = 0
+        for j in range(num_steps):
+            #   Constucting the batch from the data set
+            offset = (j * batch) % (train_labels.shape[0] - batch)
+            batch_data = train_data[offset:(offset + batch), :, :, :]
+            batch_labels = train_labels[offset:(offset + batch), :]
+            #   Dictionary to be fed to TensorFlow Session
+            feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels, dropout: 0.93}
+            _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
+            #   Calculating the Accuracy of the predictions
+            accu = accuracy(predictions, batch_labels)
+            acc_vec[step] += accu
+            loss_vec[step] += l
+            if (j % 50 == 0):
+                print('Minibatch loss at step %d: %f' % (j, l))
+                print('Minibatch accuracy: %.1f%%' % accu)
+            average += accu
+        print("Average Accuracy : %g at epoch %d" % (average / num_steps, step))
+        acc_vec[step] /= num_steps
+        loss_vec[step] /= num_steps
+        print("END OF TRAINING")
+        average = 0
+        for i in range(int(test_labels.shape[0]/batch)):
+            #   Constructing the batch from the data set
+            offset = (i * batch) % (test_labels.shape[0] - batch)
+            batch_data = test_data[offset:(offset + batch), :, :, :]
+            batch_labels = test_labels[offset:(offset + batch), :]
+            #   Dictionary to be fed to TensorFlow Session
+            feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels, dropout: 0.93}
+            _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
+            #   Calculating the Accuracy of the predictions
+            accu = accuracy(predictions, batch_labels)
+            testacc_vec[step] += accu
+            testloss_vec[step] += l
+            if (i % 50 == 0):
+                print('Test minibatch loss at step %d: %f' % (i, l))
+                print('Test minibatch accuracy: %.1f%%' % accu)
+            average += accu
+        print("Average test accuracy : %g" % (average / int(test_labels.shape[0]/batch)))
+        testacc_vec[step] /= int(test_labels.shape[0]/batch)
+        testloss_vec[step] /= int(test_labels.shape[0]/batch)
+        print("END OF TRAINING")
     end = time.time()
     print('Time elapsed: %f s' % (end-start))
 
@@ -228,3 +238,4 @@ with tf.Session() as session:
         testloss_vec=testloss_vec, 
         testacc_vec=testacc_vec)
 #============================================================================
+
